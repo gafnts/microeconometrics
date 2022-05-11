@@ -1,1 +1,130 @@
+# Ordinary least squares
 
+```{r}
+pacman::p_load(tidyverse, magrittr, here, broom)
+```
+
+## Simulation of the causal effect
+
+```{r}
+set.seed(123456789)
+
+N <- 100
+a <- 2
+b <- 3
+
+x <- runif(N)
+u <- rnorm(N)
+y <- a + b * x + u
+
+data <- tibble(y, x)
+```
+
+```{r}
+data %>% 
+  ggplot(aes(x, y)) +
+  geom_point() +
+  geom_abline(intercept = a, slope = b, color = "red") +
+  theme_classic()
+```
+
+By taking the difference in the average of Y calculated at two different values of X, we can determine how X affects the average value of Y. In essence, this is what OLS does.
+
+```{r}
+mean(y[x > 0.95]) - mean(y[x < 0.05])
+```
+
+## Matrix algebra of the OLS model
+
+Algebraic OLS estimator
+
+```{r}
+b_hat <- (mean(y) - 2) / mean(x); b_hat
+```
+
+Multiplying matrices
+
+```{r}
+X <- cbind(1, x)
+beta_hat <- solve(t(X) %*% X) %*% (t(X) %*% y); beta_hat
+solve(t(X) %*% X) %*% t(X) %*% u
+```
+
+## Least squares method of OLS
+
+```{r}
+# Optimization
+optimize(function(b) sum((y - 2 - b * x)^2), c(-10, 10))$minimum
+
+# First order condition
+(mean(x * y) - 2 * mean(x)) / mean(x * x)
+```
+
+```{r}
+lm(data, formula = y ~ x)$coefficients
+t(beta_hat)
+```
+
+## Measuring uncertainty
+
+```{r}
+set.seed(123456789)
+
+K <- 1000
+sim_res <- matrix(NA, K, 2)
+
+for (k in 1:K) {
+   x <- runif(N)
+   u <- rnorm(N)
+   y <- a + b * x + u
+   sim_res[k,] <- lm(y ~ x)$coefficients
+}
+
+colnames(sim_res) <- c("Est. of a", "Est. of b")
+
+sim_res %>% summary()
+```
+
+## The bootstrap
+
+```{r}
+set.seed(123)
+K <- 1000
+bs_mat <- matrix(NA, K, 2)
+
+for(k in 1:K) {
+  index_k <- round(runif(N, min = 1, max = N))
+  data_k <- data[index_k, ]
+  bs_mat[k, ] <- lm(y ~ x, data = data_k)$coefficients
+}
+
+tab_res <- matrix(NA, 2, 4)
+tab_res[,1] <- colMeans(bs_mat)
+tab_res[,2] <- apply(bs_mat, 2, sd)
+tab_res[,3] <- quantile(bs_mat[,1],c(0.025,0.975))
+tab_res[,4] <- quantile(bs_mat[,2],c(0.025,0.975))
+
+colnames(tab_res) <- c("Mean", "SD", "2.5%", "97.5%")
+rownames(tab_res) <- c("Est. of a","Est. of b")
+```
+
+## Returns to schooling
+
+```{r}
+data <- read_csv(here("data", "card.csv"), na = ".") %>% 
+  select(ed76, wage76, lwage76) %>% 
+  drop_na()
+```
+
+```{r}
+data %>% 
+  ggplot(aes(ed76, lwage76)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  theme_bw() +
+  theme(panel.grid = element_blank())
+
+data %>% lm(lwage76 ~ ed76, .) %>% tidy()
+```
+
+\
