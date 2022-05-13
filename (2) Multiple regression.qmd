@@ -1,7 +1,7 @@
 # Multiple regression
 
 ```{r}
-pacman::p_load(tidyverse, tidymodels, magrittr, here, janitor, stargazer)
+pacman::p_load(tidyverse, tidymodels, gafnts, here, janitor, stargazer)
 ```
 
 ## Simulation with multiple explenatory variables
@@ -94,11 +94,6 @@ lm4 <- lm %>% fit(lwage76 ~ ed76 + exp + exp2 + black + reg76r +
 ```
 
 ```{r}
-peek <- function(model){
-  t <- model %>% tidy() %>% print()
-  g <- model %>% glance() %>% select(1:5, 8, 9) %>% print()
-}
-
 lm1 %>% peek()
 lm2 %>% peek()
 lm3 %>% peek()
@@ -180,10 +175,11 @@ mat %>%
   geom_histogram(aes(y = ..density..),
                  bins = 30,
                  colour = 1, 
-                 fill = "white") +
-  geom_density(lwd = 1, colour = 4,
-               fill = 4, alpha = 0.25) +
-  geom_vline(xintercept = 0, color = "red", size = 1)
+                 fill = "darkgray") +
+  geom_density(lwd = 1, colour = 3,
+               fill = 3, alpha = 0.2) +
+  geom_vline(xintercept = 0, color = "red", size = 1) +
+  you_want_it_darker()
 ```
 
 ```{r}
@@ -243,5 +239,10 @@ beta_tilde_hat - Delta_hat%*%gamma_hat
 #### Adding more variables
 
 ```{r}
-
+hmda %>% 
+  mutate(
+    # Marital status of applicant
+    married = s23a == "M",
+    dr = ifelse(s45 > 999999, NA, s45)
+  ) %>% glimpse
 ```
