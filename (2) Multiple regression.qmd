@@ -104,3 +104,84 @@ lm2 %>% peek()
 lm3 %>% peek()
 lm4 %>% peek()
 ```
+
+## Simulation of the dual path model
+
+![](images/Screen%20Shot%202022-05-12%20at%2020.23.30.png){width="50%"}
+
+```{r}
+set.seed(123456789)
+
+N <- 50
+
+a <- 1
+b <- 0
+c <- 3
+d <- 4
+
+x <- round(runif(N)) 
+
+u_w <- runif(N)
+w <- d*x + u_w
+
+u <- rnorm(N)
+y <- a + b*x + c*w + u
+```
+
+```{r}
+lm(y ~ x) %>% summary()
+lm(y ~ x + w) %>% summary()
+```
+
+```{r}
+e_hat <- lm(y ~ x)$coef[2]
+
+c_hat <- lm(y ~ w)$coef[2]
+d_hat <- lm(w ~ x)$coef[2]
+
+e_hat - c_hat*d_hat
+```
+
+### Simulation
+
+```{r}
+set.seed(1)
+N <- 1000
+K <- 10000
+mat <- matrix(NA, K, 3)
+
+for(i in 1:K){
+  x <- round(runif(N)) 
+  u_w <- runif(N)
+  w <- d*x + u_w
+  u <- rnorm(N)
+  y <- a + b*x + c*w + u
+  
+  mod <- summary(lm(y ~ x + w))
+  mat[i,1] <- mod[[4]][2]
+  mat[i,2] <- mod[[4]][8]
+  
+  e_hat <- lm(y ~ x)$coef[2]
+  c_hat <- lm(y ~ w)$coef[2]
+  d_hat <- lm(w ~ x)$coef[2]
+  mat[i,3] <- e_hat - c_hat*d_hat
+}
+
+mat %>% 
+  as_tibble() %>% 
+  rename("est" = 1, "stat" = 2, "proposed" = 3) %>% 
+  summary()
+```
+
+```{r}
+mat %>% 
+  as_tibble() %>% 
+  ggplot(aes(V1))  + 
+  geom_histogram(aes(y = ..density..),
+                 bins = 30,
+                 colour = 1, 
+                 fill = "white") +
+  geom_density(lwd = 1, colour = 4,
+               fill = 4, alpha = 0.25) +
+  geom_vline(xintercept = 0, color = "red", size = 1)
+```
