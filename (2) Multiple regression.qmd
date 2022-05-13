@@ -1,0 +1,106 @@
+# Multiple regression
+
+```{r}
+pacman::p_load(tidyverse, tidymodels, magrittr, here, janitor, stargazer)
+```
+
+## Simulation with multiple explenatory variables
+
+```{r}
+set.seed(123456789)
+N <- 1000
+a <- 2
+b <- 3
+c <- 4
+u_x <- rnorm(N)
+
+# Independence
+alpha <- 0
+x <- x1 <- (1 - alpha) * runif(N) + alpha*u_x
+w <- w1 <- (1 - alpha) * runif(N) + alpha*u_x
+u <- rnorm(N)
+y <- a + b*x + c*w + u
+lm1 <- lm(y ~ x)
+lm2 <- lm(y ~ x + w)
+
+# Dependence
+alpha <- 0.5
+x <- x2 <- (1 - alpha) * runif(N) + alpha*u_x
+w <- w2 <- (1 - alpha) * runif(N) + alpha*u_x
+u <- rnorm(N)
+y <- a + b*x + c*w + u
+lm3 <- lm(y ~ x)
+lm4 <- lm(y ~ x + w)
+
+# Extreme dependence
+alpha <- 0.95
+x <- x3 <- (1 - alpha) * runif(N) + alpha*u_x
+w <- w3 <- (1 - alpha) * runif(N) + alpha*u_x
+u <- rnorm(N)
+y <- a + b*x + c*w + u
+lm5 <- lm(y ~ x)
+lm6 <- lm(y ~ x + w)
+```
+
+```{r}
+stargazer(list(lm1, lm2, lm3, lm4, lm5, lm6), 
+          order = c(1:6),
+          digits = 2,
+          keep = c(1:6),
+          type = "text")
+```
+
+```{r}
+cov(x1, w1)
+cov(x2, w2)
+t(x2) %*% w2
+```
+
+## Understanding multicollinearity with R
+
+```{r}
+X2 <- cbind(1, x3, w3)
+solve(t(X2)%*%X2)%*%t(X2)%*%u
+
+mean(u)
+cov(x3, u)
+cov(w3, u)
+
+(1/N)*t(X2)%*%u
+
+1/det(t(X2)%*%X2)
+```
+
+## Returns to schooling
+
+```{r}
+data <- 
+  read_csv(here("data", "card.csv"), na = ".") %>% 
+  clean_names() %>% 
+  mutate(exp = age76 - ed76 - 6,
+         exp2 = (exp^2)/100) %>% 
+  drop_na()
+```
+
+```{r}
+lm <- linear_reg() %>% set_engine("lm")
+
+lm1 <- lm %>% fit(lwage76 ~ ed76, data)
+lm2 <- lm %>% fit(lwage76 ~ ed76 + exp + exp2, data)
+lm3 <- lm %>% fit(lwage76 ~ ed76 + exp + exp2 + black + reg76r, data)
+lm4 <- lm %>% fit(lwage76 ~ ed76 + exp + exp2 + black + reg76r +
+                    smsa76r + smsa66r + reg662 + reg663 + reg664 +
+                    reg665 + reg666 + reg667 + reg668 + reg669, data)
+```
+
+```{r}
+peek <- function(model){
+  t <- model %>% tidy() %>% print()
+  g <- model %>% glance() %>% select(1:5, 8, 9) %>% print()
+}
+
+lm1 %>% peek()
+lm2 %>% peek()
+lm3 %>% peek()
+lm4 %>% peek()
+```
