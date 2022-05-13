@@ -185,3 +185,63 @@ mat %>%
                fill = 4, alpha = 0.25) +
   geom_vline(xintercept = 0, color = "red", size = 1)
 ```
+
+```{r}
+X <- cbind(1,x)
+W <- cbind(1,w)
+beta_tilde_hat <- solve(t(X)%*%X)%*%t(X)%*%y
+Delta_hat <- solve(t(X)%*%X)%*%t(X)%*%W
+gamma_hat <- solve(t(W)%*%W)%*%t(W)%*%y
+beta_tilde_hat - Delta_hat%*%gamma_hat
+```
+
+## Are bankers racist or greedy?
+
+```{r}
+hmda <- read_csv(here("data", "hmda.csv"))
+
+hmda_one <- 
+  hmda %>% 
+  mutate(deny = case_when(s7 == 1 | s7 == 2 ~ 0, s7 == 3 ~ 1, TRUE ~ NA_real_),
+         black = s13 == 3)
+```
+
+```{r}
+lm <- linear_reg() %>% set_engine("lm")
+lm1 <- lm %>% fit(deny ~ black, hmda) %>% peek()
+```
+
+### Causal pathways of discrimination
+
+![](images/Screen%20Shot%202022-05-13%20at%2016.33.17.png){width="50%"}
+
+#### Estimating the direct effect
+
+```{r}
+hmda_two <-
+  hmda %>% 
+  mutate(lwage = ifelse(s31a == 0, 0, log(s31a)),
+         emp = ifelse(s25a > 1000, NA, s25a)) %>% 
+  rename("mhist" = s42, "chist" = s43, "phist" = s44) %>% 
+  select(deny, black, lwage, emp, mhist, chist, phist) %>% 
+  drop_na()
+```
+
+```{r}
+Y2 <- hmda$deny
+X2 <- cbind(1, hmda$black)
+W2 <- cbind(1, hmda$lwage, hmda$chist, hmda$mhist, hmda$phist, hmda$emp)
+```
+
+```{r}
+beta_tilde_hat <- solve(t(X2)%*%X2)%*%t(X2)%*%Y2
+Delta_hat <- solve(t(X2)%*%X2)%*%t(X2)%*%W2
+gamma_hat <- solve(t(W2)%*%W2)%*%t(W2)%*%Y2
+beta_tilde_hat - Delta_hat%*%gamma_hat
+```
+
+#### Adding more variables
+
+```{r}
+
+```
