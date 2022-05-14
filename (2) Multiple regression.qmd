@@ -241,14 +241,102 @@ beta_tilde_hat - Delta_hat%*%gamma_hat
 #### Adding more variables
 
 ```{r}
-hmda %>% 
-  mutate(
-    # Marital status of applicant
+check <- function(val){
+  ifelse(val > 999999, NA, val)
+}
+
+hmda_three <- 
+  hmda %>% 
+  transmute(
+    # Initial variables
+    deny = case_when(s7 == 1 | s7 == 2 ~ 0, s7 == 3 ~ 1, TRUE ~ NA_real_),
+    black = s13 == 3,
+    lwage = ifelse(s31a == 0, 0, log(s31a)),
+    emp = ifelse(s25a > 1000, NA, s25a),
+    emp_2 = emp^2,
+    mhist = s42, 
+    chist = s43, 
+    phist = s44,
+   # Marital status of applicant
     married = s23a == "M",
     # Debt-to-income ratio
-    dr = ifelse(s45 > 999999, NA, s45),
+    dr = check(s45),
     # Number of separate consumer credit lines on credit reports
-    clines = ifelse(s41 > 999999, NA, s41),
-    
-  ) %>% summary()
+    clines = check(s41),
+    clines_2 = clines^2,
+    # Is male
+    male = s15 == 1, 
+    # County where property located
+    suff = check(s11),
+    # Liquid assets (in thousands)
+    assets = check(s35),
+    # Loan amount (in thousands)
+    s6 = check(s6),
+    # Appraised value (in thousands)
+    s50 = check(s50),
+    # Purchase price (in thousands)
+    s33 = check(s33),
+    # Loan amount (in thousands) / Appraised value (in thousands)
+    lr = s6 / s50,
+    lr_2 = lr^2,
+    # Purchase price (in thousands) / Appraised value (in thousands)
+    pr = s33/s50,
+    pr_2 = pr^2,
+    # Co-applicant sex (not applicable)
+    coap = s16 == 4,
+    # Years of education
+    school = check(school),
+    # Number of times application was reviewed by underwriter
+    s57 = check(s57),
+    # Term of loans (months)
+    s48 = check(s48),
+    # Special loan application program
+    s39 = check(s39),
+    # Change in median value of property in a given tract, 1980-1990
+    chval = check(chval),
+    # Number of units in property purchased
+    s20 = check(s20),
+    # Total monthly income of coapplicant (in dollars)
+    lwage_coap = ifelse(s31c == 0, 0, log(s31c)),
+    lwage_coap2 = ifelse(coap == 1, lwage_coap, 0),
+    male_coap = s16 == 1,
+   # Other variables
+    rtdum, s24a, s27a, s53, s55, s56, bd, mi, old, vr, uria, netw, dnotown, dprop,
+  ) %>% 
+  drop_na()
+```
+
+```{r}
+Y3 <- hmda_two$deny
+X3 <- cbind(1, hmda_two$black)
+W3 <- 
+  hmda_three %>% 
+  select(
+  lwage, chist, mhist, phist, emp, emp_2, married, dr, clines, male,
+  suff, assets, lr, pr, coap, s20, s24a, s27a, s39, s48, s53, s55, s56,
+  s57, chval, school, bd, mi, old, vr, uria, netw, dnotown, dprop,
+  lwage_coap2, lr_2, pr_2, clines_2, rtdum
+  ) %>%
+  as.matrix()
+
+colnames(W3) <- NULL
+```
+
+```{r}
+set.seed(2)
+K <- 1000
+bs_mat <- matrix(NA, K, 2)
+
+for(i in 1:K) {
+   index_k <- round(runif(length(Y3), min = 1, max = length(Y3)))
+   beta_tilde_hat <- solve(t(X3)%*%X3) %*% t(X3)%*%Y3
+   Delta_hat <- solve(t(X3)%*%X3) %*% t(X3)%*%W3
+   gamma_hat <- solve(t(W3)%*%W3)%*%t(W3)%*%Y3
+   bs_mat[k,] <- beta_tilde_hat - Delta_hat%*%gamma_hat
+}
+
+tab_res <- matrix(NA,2,4)
+tab_res[,1] <- colMeans(bs_mat)
+tab_res[,2] <- apply(bs_mat, 2, sd)
+tab_res[1,3:4] <- quantile(bs_mat[,1], c(0.025,0.975))
 ```
