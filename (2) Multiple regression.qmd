@@ -204,7 +204,7 @@ hmda_one <-
 
 ```{r}
 lm <- linear_reg() %>% set_engine("lm")
-lm1 <- lm %>% fit(deny ~ black, hmda) %>% peek()
+lm1 <- lm %>% fit(deny ~ black, hmda_one) %>% peek()
 ```
 
 ### Causal pathways of discrimination
@@ -216,7 +216,9 @@ lm1 <- lm %>% fit(deny ~ black, hmda) %>% peek()
 ```{r}
 hmda_two <-
   hmda %>% 
-  mutate(lwage = ifelse(s31a == 0, 0, log(s31a)),
+  mutate(deny = case_when(s7 == 1 | s7 == 2 ~ 0, s7 == 3 ~ 1, TRUE ~ NA_real_),
+         black = s13 == 3,
+         lwage = ifelse(s31a == 0, 0, log(s31a)),
          emp = ifelse(s25a > 1000, NA, s25a)) %>% 
   rename("mhist" = s42, "chist" = s43, "phist" = s44) %>% 
   select(deny, black, lwage, emp, mhist, chist, phist) %>% 
@@ -224,9 +226,9 @@ hmda_two <-
 ```
 
 ```{r}
-Y2 <- hmda$deny
-X2 <- cbind(1, hmda$black)
-W2 <- cbind(1, hmda$lwage, hmda$chist, hmda$mhist, hmda$phist, hmda$emp)
+Y2 <- hmda_two$deny
+X2 <- cbind(1, hmda_two$black)
+W2 <- cbind(1, hmda_two$lwage, hmda_two$chist, hmda_two$mhist, hmda_two$phist, hmda_two$emp)
 ```
 
 ```{r}
@@ -243,6 +245,10 @@ hmda %>%
   mutate(
     # Marital status of applicant
     married = s23a == "M",
-    dr = ifelse(s45 > 999999, NA, s45)
-  ) %>% glimpse
+    # Debt-to-income ratio
+    dr = ifelse(s45 > 999999, NA, s45),
+    # Number of separate consumer credit lines on credit reports
+    clines = ifelse(s41 > 999999, NA, s41),
+    
+  ) %>% summary()
 ```
