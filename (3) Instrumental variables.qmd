@@ -3,3 +3,53 @@
 ```{r}
 pacman::p_load(tidyverse, gafnts, here, janitor)
 ```
+
+### Simulation of confounded data
+
+![](images/Screen%20Shot%202022-05-18%20at%2016.48.43.png){width="50%"}
+
+```{r}
+set.seed(1)
+
+N <- 1000
+
+a <- 2
+b <- 3
+c <- 2
+e <- 3
+f <- -1
+d <- 4
+
+z <- runif(N)
+
+u_1 <- rnorm(N, mean = 0, sd = 3)
+u_2 <- rnorm(N, mean = 0, sd = 1)
+
+x <- f + d*z + u_2 + c*u_1
+y <- a + b*x + e*u_1
+
+lm1 <- lm(y ~ x)
+lm1 |> summary()
+```
+
+```{r}
+# Backdoor relation
+b + (e/c)
+
+# Estimated x
+lm1$coef[2]
+
+# True effect
+b
+```
+
+### Simulation of an IV estimator
+
+![](images/Screen%20Shot%202022-05-18%20at%2016.49.03.png){width="50%"}
+
+```{r}
+bd_hat <- lm(y ~ z)$coef[2]
+d_hat <- lm(y ~ x)$coef[2]
+
+bd_hat/d_hat
+```
