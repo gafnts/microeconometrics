@@ -110,5 +110,11 @@ print(lm_iv(y, x, z), digits = 3)
 ### Returns to schooling
 
 ```{r}
+data <- 
+  read_csv(here("data", "card.csv"), na = ".") |> 
+  clean_names()
+```
+
+```{r}
 
 ```
