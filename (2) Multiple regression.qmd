@@ -310,13 +310,13 @@ hmda_three <-
 Y3 <- hmda_two$deny
 X3 <- cbind(1, hmda_two$black)
 W3 <- 
-  hmda_three %>% 
+  hmda_three |> 
   select(
   lwage, chist, mhist, phist, emp, emp_2, married, dr, clines, male,
   suff, assets, lr, pr, coap, s20, s24a, s27a, s39, s48, s53, s55, s56,
   s57, chval, school, bd, mi, old, vr, uria, netw, dnotown, dprop,
   lwage_coap2, lr_2, pr_2, clines_2, rtdum
-  ) %>%
+  )  |> 
   as.matrix()
 
 colnames(W3) <- NULL
