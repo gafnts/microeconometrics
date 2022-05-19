@@ -199,3 +199,59 @@ data |>
     smsa76r = mean(smsa76r),
   )
 ```
+
+### Test of instrumental validity
+
+![](images/Screen%20Shot%202022-05-18%20at%2019.28.07.png){width="50%"}
+
+```{r}
+Z2 <- cbind(x1$momdad14, x1$age76, x1$age2, x1$black,
+           x1$reg76r, x1$smsa76r, x1$smsa66r, x1$reg662,
+           x1$reg663, x1$reg664, x1$reg665, x1$reg666,
+           x1$reg667, x1$reg668, x1$reg669)
+
+# Bootstrap
+set.seed(123456789)
+bs_diff <- matrix(NA,1000,1)
+N <- length(y)
+
+for (i in 1:1000) {
+ index_bs <- round(runif(N, min = 1, max = N))
+ y_bs <- y[index_bs]
+ X_bs <- X[index_bs,]
+ Z1_bs <- Z1[index_bs,]
+ Z2_bs <- Z2[index_bs,]
+ 
+ bs_diff[i,] <- 
+   (solve(t(Z1_bs)%*%X_bs)%*%t(Z1_bs)%*%y_bs)[2,1] - 
+   (solve(t(Z2_bs)%*%X_bs)%*%t(Z2_bs)%*%y_bs)[2,1]
+}
+
+summary(bs_diff)
+quantile(bs_diff,c(0.05,0.95))
+```
+
+### LATE estimates of returns to schooling
+
+```{r}
+# college indicator
+X2 <- X[,1] > 12
+
+# using college proximity as an instrument.
+mu_y1 <- mean(y[Z1[,1]==1])
+mu_y0 <- mean(y[Z1[,1]==0])
+p_11 <- mean(X2[Z1[,1]==1])
+p_10 <- mean(X2[Z1[,1]==0])
+
+# LATE, divide by 4 to get the per-year effect
+((mu_y1 - mu_y0)/(p_11 - p_10))/4
+
+# using living with both parents as an instrument.
+mu_y1 <- mean(y[Z2[,1]==1])
+mu_y0 <- mean(y[Z2[,1]==0])
+p_11 <- mean(X2[Z2[,1]==1])
+p_10 <- mean(X2[Z2[,1]==0])
+
+# LATE
+((mu_y1 - mu_y0)/(p_11 - p_10))/4
+```
