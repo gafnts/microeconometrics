@@ -110,11 +110,92 @@ print(lm_iv(y, x, z), digits = 3)
 ### Returns to schooling
 
 ```{r}
-data <- 
+x <- 
   read_csv(here("data", "card.csv"), na = ".") |> 
   clean_names()
 ```
 
 ```{r}
+x$lwage76 <- as.numeric(x$lwage76)
+x1 <- x[is.na(x$lwage76)==0,]
+x1$exp <- x1$age76 - x1$ed76 - 6
+x1$exp2 <- (x1$exp^2)/100
+```
 
+```{r}
+# OLS estimate
+lm4 <- lm(lwage76 ~ ed76 + exp + exp2 + black + reg76r +
+            smsa76r + smsa66r + reg662 + reg663 + reg664 +
+            reg665 + reg666 + reg667 + reg668 + reg669, data = x1)
+
+lm4 |> summary()
+```
+
+```{r}
+# Intent to treat estimate
+lm5 <- lm(lwage76 ~ nearc4 + exp + exp2 + black + reg76r +
+            smsa76r + smsa66r + reg662 + reg663 + reg664 +
+            reg665 + reg666 + reg667 + reg668 + reg669, data = x1)
+
+lm5 |> summary()
+```
+
+```{r}
+# Effect of instrument on explanatory variable
+lm6 <- lm(ed76 ~ nearc4 + exp + exp2 + black + reg76r +
+            smsa76r + smsa66r + reg662 + reg663 + reg664 +
+            reg665 + reg666 + reg667 + reg668 + reg669, data = x1)
+
+lm6 |> summary()
+```
+
+```{r}
+# IV estimate of return to schooling
+lm5$coefficients[2]/lm6$coefficients[2]
+```
+
+### Matrix algebra IV estimates of returns to schooling
+
+```{r}
+y <- x1$lwage76
+
+X <- cbind(x1$ed76, x1$exp, x1$exp2, x1$black, x1$reg76r,
+            x1$smsa76r, x1$smsa66r, x1$reg662, x1$reg663,
+            x1$reg664, x1$reg665, x1$reg666, x1$reg667,
+            x1$reg668, x1$reg669)
+
+x1$age2 <- x1$age76^2
+
+Z1 <- cbind(x1$nearc4, x1$age76, x1$age2, x1$black,
+             x1$reg76r,x1$smsa76r, x1$smsa66r, x1$reg662,
+             x1$reg663,x1$reg664, x1$reg665, x1$reg666,
+             x1$reg667, x1$reg668, x1$reg669)
+
+res <- lm_iv(y,X,Z1, Reps = 1000)
+
+rownames(res) <- c("intercept","ed76","exp", "exp2", "black",
+                   "reg76r","smsa76r", "smsa66r",
+                   "reg662","reg663","reg664", "reg665",
+                   "reg666","reg667", "reg668", "reg669")
+
+res
+```
+
+### Concerns with distance to college
+
+```{r}
+data |> 
+  mutate(near = fct_recode(factor(nearc4), 
+                           "Not near" = "0", "Near" = "1"),
+         exp = age76 - ed76 - 6) |> 
+  group_by(near) |> 
+  summarise(
+    ed76 = mean(ed76),
+    exp = mean(exp),
+    black = mean(black),
+    south66 = mean(south66),
+    smsa66r = mean(smsa66r),
+    reg76r = mean(reg76r),
+    smsa76r = mean(smsa76r),
+  )
 ```
