@@ -1,0 +1,5 @@
+# Bounds estimation
+
+```{r}
+pacman::p_load(tidyverse, gafnts, here, janitor)
+```
