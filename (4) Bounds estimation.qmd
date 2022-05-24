@@ -1,5 +1,43 @@
 # Bounds estimation
 
 ```{r}
-pacman::p_load(tidyverse, gafnts, here, janitor)
+pacman::p_load(tidyverse, patchwork, here)
+```
+
+#### Simulation of impossible data
+
+```{r}
+set.seed(1)
+
+N <- 200
+a <- 2
+b <- rnorm(N, mean = 2, sd = 3)
+
+x0 <- rep(0,N) 
+x1 <- rep(1,N)
+u <- rnorm(N)
+
+y <- a + b*cbind(x0, x1) + u
+```
+
+```{r}
+p1 <- 
+  y |> 
+  as_tibble() |> 
+  pivot_longer(everything()) |> 
+  group_by(name) |> 
+  ggplot(aes(value, fill = name)) +
+  geom_density(alpha = .5) +
+  theme(legend.position = "bottom")
+
+p2 <- 
+  y |> 
+  as_tibble() |> 
+  pivot_longer(everything()) |> 
+  group_by(name) |> 
+  ggplot(aes(value, color = name)) +
+  stat_ecdf() +
+  theme(legend.position = "bottom")
+
+p1 + p2
 ```
