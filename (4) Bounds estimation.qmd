@@ -1,7 +1,7 @@
 # Bounds estimation
 
 ```{r}
-pacman::p_load(tidyverse, patchwork, here)
+pacman::p_load(tidyverse, patchwork, here, haven)
 ```
 
 #### Simulation of impossible data
@@ -40,4 +40,88 @@ p2 <-
   theme(legend.position = "bottom")
 
 p1 + p2
+```
+
+#### Kolmogorov bounds
+
+```{r}
+FL <- function(b, y1, y0) {
+  f <- function(x) -(mean(y1 < x) - mean(y0 < x - b))
+  a <- optimize(f, c(min(y1,y0), max(y1,y0))) 
+  return(max(-a$objective,0))
+}
+
+FU <- function(b, y1, y0) {
+  f <- function(x) mean(y1 < x) - mean(y0 < x - b)
+  a <- optimize(f, c(min(y1,y0), max(y1,y0)))
+  return(1 + min(a$objective,0))
+}
+```
+
+```{r}
+K <- 50
+min_diff <- min(y[,1]) - max(y[,2])
+max_diff <- max(y[,1]) - min(y[,2])
+delta_diff <- (max_diff - min_diff)/K
+y_K <- min_diff + c(1:K)*delta_diff
+
+plot(ecdf(y[,2] - y[,1]), do.points=FALSE,lwd=3,main="")
+lines(y_K,sapply(y_K, function(x) FL(x,y[,2],y[,1])), lty=2,lwd=3)
+lines(y_K,sapply(y_K, function(x) FU(x,y[,2],y[,1])), lty=3,lwd=3)
+abline(v=0,lty=2,lwd=3)
+```
+
+#### Do "nudges" increase savings?
+
+```{r}
+x <- read_dta(here("data", "savings.dta"))
+
+index_na <- is.na(rowSums(cbind(x$treatment, x$balchange, x$marketing))) == 0
+
+x1 <- x[index_na,]
+bal_0 <- x1[x1$treatment==0 & x1$marketing==0,]$balchange
+bal_1 <- x1[x1$treatment==1 & x1$marketing==0,]$balchange
+
+# we are just going to look at the people who did not receive
+# the marketing information.
+# These people are split between those that received
+# the account (treatment = 1), and those that did not (treatment = 0).
+
+# balchange - measure their balance changed in a year.
+lbal_0 <- log(bal_0 + 2169)
+lbal_1 <- log(bal_1 + 2169)
+
+# the distribution of balances is very skewed.
+mean(bal_1) - mean(bal_0)
+```
+
+#### Simulation of Manski bounds
+
+```{r}
+c <- 2
+d <- 4
+f <- -1
+Z <- round(runif(N))
+u_2 <- rnorm(N)
+x_star <- f + c*u + d*Z + u_2
+X <- x_star > 0 # treatment assignment
+Y <- (1-X)*y[,1] + X*y[,2] # outcome conditional on treatment
+mean(Y[X==1]) - mean(Y[X==0])
+```
+
+```{r}
+PX1 = mean(X==1)
+PX0 = mean(X==0)
+EY_X1 = mean(Y[X==1])
+EY_X0 = mean(Y[X==0])
+minY = min(Y)
+maxY = max(Y)
+```
+
+```{r}
+# ATE upper bound
+(EY_X1 - minY)*PX1 + (maxY - EY_X0)*PX0
+
+# ATE lower bound
+(EY_X1 - maxY)*PX1 + (minY - EY_X0)*PX0
 ```
