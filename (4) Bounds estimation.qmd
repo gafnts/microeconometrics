@@ -123,5 +123,5 @@ maxY = max(Y)
 (EY_X1 - minY)*PX1 + (maxY - EY_X0)*PX0
 
 # ATE lower bound
-(EY_X1 - maxY)*PX1 + (minY - EY_X0)*PX0
+(EY_X1 - maxY)*PX1 + (minY - EY_X0)*PX0l
 ```
