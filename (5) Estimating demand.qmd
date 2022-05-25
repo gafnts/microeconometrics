@@ -1,0 +1,5 @@
+# Estimating demand
+
+```{r}
+pacman::p_load(tidyverse, gafnts, here, janitor)
+```
