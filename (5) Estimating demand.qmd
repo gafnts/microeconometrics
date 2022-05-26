@@ -3,3 +3,103 @@
 ```{r}
 pacman::p_load(tidyverse, gafnts, here, janitor)
 ```
+
+#### Simulating demand
+
+```{r}
+set.seed(1)
+
+N <- 1000
+u <- sort(rnorm(N, mean=1, sd=3))
+p <- 2
+
+mean(u - p > 0) # estimated probability
+1 - pnorm(p, mean=1, sd=3) # true probability
+```
+
+```{r}
+p <- runif(9,min=-10,max=10)
+# 9 points between -10, 10
+
+s <- matrix(NA,length(p),1) # share of market buying A. 
+
+for (i in 1:length(p)) {
+s[i,1] <- mean(u - p[i] > 0)
+#print(i)
+}
+
+plot(1-ecdf(u)(u),u, type="l",lwd=3,lty=1,col=1,
+     xlab="s", ylab="p", xlim=c(0,1))
+# ecdf(a)(a) presents the estimated probabilities of a.
+lines(sort(s),p[order(s)], type="l", lwd=3,lty=2)
+abline(h=0, lty=2)
+legend("bottomleft",c("True","Est."),lwd=3,lty=c(1:2))
+```
+
+#### Simulating discrete choice
+
+```{r}
+set.seed(2)
+
+N <- 100
+a <- 2
+b <- -3
+u <- rnorm(N)
+x <- runif(N)
+
+y_star <- a + b*x + u
+y <- y_star > 0
+
+lm1 <- lm(y ~ x)
+lm1 |> summary()
+```
+
+#### Binomial likelihood
+
+```{r}
+set.seed(3)
+
+N <- 100
+p <- 0.367 # the true probability of Head.
+Head <- runif(N) < p
+mean(Head) # the observed frequency of Head.
+```
+
+#### Simulation with logit and probit estimators
+
+```{r}
+set.seed(3)
+
+N <- 5000
+X_A <- cbind(1, matrix(runif(2*N), nrow=N))
+X_B <- cbind(1, matrix(runif(2*N), nrow=N))
+
+# creates two product characteristic matrices
+beta <- c(1, -2, 3)
+```
+
+```{r}
+# Probit
+u_A <- rnorm(N)
+y <- X_A%*%beta - X_B%*%beta + u_A > 0
+
+glm1 <- glm(y ~ I(X_A - X_B),
+            family = binomial(link="probit"))
+```
+
+```{r}
+# Logit
+u_A <- log(rweibull(N, shape = 1))
+# gumbel or extreme value type 1
+u_B <- log(rweibull(N, shape = 1))
+
+y <- (X_A%*%beta - X_B%*%beta) + (u_A - u_B) > 0
+
+glm2 <- glm(y ~ I(X_A - X_B), 
+            family = binomial(link="logit"))
+```
+
+```{r}
+glm1 |> summary()
+glm2 |> summary()
+```
